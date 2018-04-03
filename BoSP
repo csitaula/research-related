@@ -1,0 +1,354 @@
+library(tokenizers)
+processFile = function(filepath) {
+  con = file(filepath, "r")
+  while (TRUE) {
+    line = readLines(con)
+    if (length(line) == 0) {
+      break
+    }
+    words <- line
+    wrds <- file.path('D:/SUN397/SUN397', words)
+  }
+  
+  close(con)
+  return(wrds)
+}
+output <- processFile('D:/SUN397//Partitions/Testing_01.txt')
+#Test the image from SUN397
+library(keras)
+library(tensorflow)
+model <-  application_vgg19(weights = 'imagenet', include_top = FALSE)
+# x<-image_load(output[1],target_size = c(224,224))
+# x <- image_to_array(x)
+# x <- array_reshape(x,c(1,dim(x)))
+# x <- imagenet_preprocess_input(x)
+# # preds <- model%>%predict(x)
+# # imagenet_decode_predictions(preds, top=3)[[1]]
+# # #It worked
+# #With this code, the files from the sources can easily be extracted for the research and feature design
+# #work for 4th layer
+# new_model <- keras_model(inputs = model$input, outputs = get_layer(model,'block4_pool')$output)
+# prediction_4th <- new_model$output %>% layer_average_pooling_2d(c(2,2), strides = 2)
+# #again form new model to add new layer and compile
+# n_m <- keras_model(inputs = new_model$input, outputs = prediction_4th)
+# #compile the model
+# n_m%>%compile(optimizer = 'rmsprop', loss = 'categorical_crossentropy')
+# #final feature from 4th layer
+# block4_refined_feature <- n_m%>%predict(x)
+# #This model is for processing 5th layer
+# new_model5<-keras_model(inputs = model$input,outputs = get_layer(model,'block5_pool')$output)
+# block5_refined_feature <- new_model5%>%predict(x)
+# #These two features are concatenated after processing.
+# #the output format will be 4-dimensional type. for example [1,1:7,1:7,1:512]. The length of BoSP is 512.
+# #In order to retrieve 49 spatial units, we extract the features [,i,j,1:512], where i represents row, j represents columns.
+# #i runs from 1 to 7, similarly j runs from 1 to 7
+# for(i in 1:7){
+#   for(j in 1:7){
+#     features <- block5_refined_feature[1,i,j,1:512]
+#     write.table(features,file ='D:/SUN397/Research_Data/Train/data.txt' ,row.names=F,col.names=F,append = TRUE,sep = ",")
+#
+#   }
+# }
+# for(i in 1:7){
+#   for(j in 1:7){
+#     features <- block4_refined_feature[,i,j,1:512]
+#     write.table(features,file ='D:/SUN397/Research_Data/Train/data.txt' ,row.names=F,col.names=F,append = TRUE,sep = ",")
+#   }
+# }
+feature_extraction <- function(image_list) {
+  for (l in 17241:19850) {
+    x <- image_load(output[l], target_size = c(224, 224))
+    x <- image_to_array(x)
+    x <- array_reshape(x, c(1, dim(x)))
+    x <- imagenet_preprocess_input(x)
+    # preds <- model%>%predict(x)
+    # imagenet_decode_predictions(preds, top=3)[[1]]
+    # #It worked
+    #With this code, the files from the sources can easily be extracted for the research and feature design
+    #work for 4th layer
+    new_model <-
+      keras_model(inputs = model$input,
+                  outputs = get_layer(model, 'block4_pool')$output)
+    prediction_4th <-
+      new_model$output %>% layer_average_pooling_2d(c(2, 2), strides = 2)
+    #again form new model to add new layer and compile
+    n_m <-
+      keras_model(inputs = new_model$input, outputs = prediction_4th)
+    #compile the model
+    n_m %>% compile(optimizer = 'rmsprop', loss = 'categorical_crossentropy')
+    #final feature from 4th layer
+    block4_refined_feature <- n_m %>% predict(x)
+    #This model is for processing 5th layer
+    new_model5 <-
+      keras_model(inputs = model$input,
+                  outputs = get_layer(model, 'block5_pool')$output)
+    block5_refined_feature <- new_model5 %>% predict(x)
+    #These two features are concatenated after processing.
+    #the output format will be 4-dimensional type. for example [1,1:7,1:7,1:512]. The length of BoSP is 512.
+    #In order to retrieve 49 spatial units, we extract the features [,i,j,1:512], where i represents row, j represents columns.
+    #i runs from 1 to 7, similarly j runs from 1 to 7
+    df <-
+      file.create(paste0('D:/SUN397/Research_Data/Test/', l, '.txt', collapse = ""))
+    print(paste('Encoding', l, 'th', 'image'))
+    print('\n')
+    for (i in 1:7) {
+      for (j in 1:7) {
+        features <- block5_refined_feature[1, i, j, 1:512]
+        write.table(
+          features,
+          file = paste0(
+            'D:/SUN397/Research_Data/Test/',
+            l,
+            '.txt',
+            collapse = ""
+          ),
+          row.names = F,
+          col.names = F,
+          append = TRUE
+        )
+        
+      }
+    }
+    for (i in 1:7) {
+      for (j in 1:7) {
+        features <- block4_refined_feature[, i, j, 1:512]
+        write.table(
+          features,
+          file = paste0(
+            'D:/SUN397/Research_Data/Test/',
+            l,
+            '.txt',
+            collapse = ""
+          ),
+          row.names = F,
+          col.names = F,
+          append = TRUE
+        )
+      }
+    }
+    
+    
+  }
+}
+elementwise_addition <- function(source_of_files) {
+  #Read data from each file and write the result into another fille
+  for (f in 1:19850) 
+  {
+    fileName <- paste0(source_of_files, '/', f, '.txt', collapse = "")
+    print(paste0('Reading the file',f,'.txt'))
+    a <- c()
+    con = file(fileName, "r")
+    while (TRUE) {
+      line=readLines(fileName)
+      if (length(line)==0){
+        break
+      } #if close
+      a <- append(a,as.double(line))
+      print(line)
+      # k<-k+1
+    }# while close
+    close(con)
+    print(paste0('Create a new file to write', f,'new','.txt'))
+    df <- file.create(paste0(source_of_files, '/', f, 'new', '.txt', collapse = ""))
+    writeleName <-
+      paste0(source_of_files, '/', f, 'new', '.txt', collapse = "")
+    
+    #calculate the elementwise addition pool for block5 pool features
+    output <- c()
+    for (i in 1:512) {
+      sum <- a[i]
+      for (j in 1:48) {
+        sum = sum + a[512 * j + i]
+      } #inner for loop
+      
+      output[i] <- sum
+      #filename to write the output file
+      write.table(
+        output[i],
+        file = writeleName,
+        row.names = F,
+        col.names = F,
+        append = TRUE
+      )
+      
+    }#outer for loop
+    
+    
+    #calculate the elementwise addition for block4 pool features
+    output <- c()
+    for (i in 25089:25600) {
+      sum <- a[i]
+      for (k in 1:48) {
+        sum = sum + a[512 * k + i]
+      } #inner for loop
+      output[i-25088] <- sum
+      #filename to write the output file
+      write.table(
+        output[i-25088],
+        file = writeleName,
+        row.names = F,
+        col.names = F,
+        append = TRUE
+      )
+      
+    } #outer for looop
+    
+    
+  } #outer for loop close
+} #function close
+normalize_feature <- function(vector_files) {
+  #Read data from each file and write the result into another fille
+  for (f in 1:19850) {
+    df <- file.create(paste0(source_of_files, '/', f, 'new1', '.txt', collapse = ""))
+    fileName <-
+      paste0(source_of_files, '/', f, 'new', '.txt', collapse = "")
+    k <- 0
+    a <- c()
+    while (TRUE) {
+      line = readLines(fileName, n = 1)
+      if (length(line) == 0) {
+        break
+      }
+      a[k] <- line
+      print(line)
+      k++
+    }
+    
+    close(fileName)
+    #calculate the features for block5 features
+    for (i in 1:512) {
+      b[i] <- a[i]
+      
+    }
+    final_vector <-
+      paste0(source_of_files, '/', f, 'new1', '.txt', collapse = "")
+    max_block5 <- max(b)
+    median_block5 <- mean(b)
+    #update the final value using pooling
+    for (i in 1:512) {
+      if (b[i]<median_block5) {
+        b[i] <- 0
+        write.table(
+          output[i],
+          file = final_vector,
+          row.names = F,
+          col.names = F,
+          append = TRUE
+        )
+      }
+      else{
+        b[i] <- b[i] / max_block5
+        write.table(
+          output[i],
+          file = final_vector,
+          row.names = F,
+          col.names = F,
+          append = TRUE
+        )
+      }
+      
+    }
+    #calculate the features for block4 features
+    sum <- 0
+    for (i in 512:1024) {
+      c[i] <- a[i]
+      
+    }
+    #find the average
+    median_block4 <- mean(c)
+    max_block4 <- max(c)
+    #update the final value using pooling
+    for (i in 1:512) {
+      if (c[i]<median_block4) {
+        c[i] <- 0
+        write.table(
+          output[i],
+          file = final_vector,
+          row.names = F,
+          col.names = F,
+          append = TRUE
+        )
+      }
+      else{
+        c[i] <- c[i] / max_block4
+        write.table(
+          output[i],
+          file = final_vector,
+          row.names = F,
+          col.names = F,
+          append = TRUE
+        )
+      }
+      
+    }
+    
+  } #outer for loop close
+} #function close
+norm_based_algorithm<-function(vector_files){
+  for (f in 1:19850) {
+    fileName <- paste0(source_of_files, '/', f, '.txt', collapse = "")
+    k <- 0
+    a <- c()
+    while (TRUE) {
+      line = readLines(fileName, n = 1)
+      if (length(line) == 0) {
+        break
+      }
+      a[k] <- line
+      print(line)
+      k<-k+1
+    }
+    
+    close(fileName)
+#for block5 features processing
+    li<-list()
+    
+  for(i in 1:512){
+   vec<-c(a[i])
+   for(j in 1:48){
+     vec[j+1]<-a[512*j+i]
+   }#inner for loop close
+   li[[i]]<-vec
+ }#first for-loop close
+#this loop extracts vectors into the list format
+#now calculate the norm of every 512 values
+test<-c()
+outputfile<-file.create(paste0(source_of_files, '/', f,'norm', '.txt', collapse = ""))
+for(k in 1:512){
+  mat<-as.matrix(li[[k]],nrow=7,ncol=7)
+  test[k]<-norm(mat,'F')
+  write.table(
+    test[k],
+    file = outputfile,
+    row.names = F,
+    col.names = F,
+    append = TRUE
+  )
+  
+}
+li<-list()
+vec <- c()
+for (i in 25089:25600) {
+  vec<-c(a[i])
+  for (k in 1:48) {
+    vec[j+1]<-a[512*j+i]
+  }
+  
+  li[[i-25088]]<-vec
+}
+  test<-c()
+  outputfile<-file.create(paste0(source_of_files, '/', f,'norm', '.txt', collapse = ""))
+  for(k in 1:512){
+    mat<-as.matrix(li[[k]],nrow=7,ncol=7)
+    test[k]<-norm(mat,'F')
+    write.table(
+      test[k],
+      file = outputfile,
+      row.names = F,
+      col.names = F,
+      append = TRUE
+    )
+  }
+  
+} #for close
+}#function close
